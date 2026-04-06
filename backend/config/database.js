@@ -1,38 +1,28 @@
 const mongoose = require('mongoose');
 
-let mongoServer = null;
-let globalMongoUri = null;
-
 const connectDB = async () => {
   try {
-    let mongoUri = process.env.DATABASE_URL || process.env.MONGODB_URI;
-    
-    // Если нет переменных окружения, пытаемся использовать in-memory MongoDB
-    if (!mongoUri || mongoUri === '') {
-      // Используем глобальный экземпляр если уже создан
-      if (globalMongoUri) {
-        mongoUri = globalMongoUri;
-        console.log('🧪 Используем существующий in-memory MongoDB');
-      } else {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const mongoUri = isProduction
+      ? process.env.DATABASE_URL
+      : process.env.MONGODB_URI || process.env.DATABASE_URL;
+
+    // В production режиме требуется DATABASE_URL
+    if (isProduction) {
+      if (!mongoUri) {
+        throw new Error('DATABASE_URL не установлена в production режиме! Используйте MongoDB Atlas.');
+      }
+    } else {
+      // В development можно использовать in-memory если нет URI
+      if (!mongoUri || mongoUri === '') {
         console.log('🧪 MongoDB URI не установлена, пытаемся запустить in-memory MongoDB...');
         try {
           const { MongoMemoryServer } = require('mongodb-memory-server');
-          mongoServer = await MongoMemoryServer.create();
+          const mongoServer = await MongoMemoryServer.create();
           mongoUri = mongoServer.getUri();
-          globalMongoUri = mongoUri;
           console.log('✅ In-memory MongoDB запущена на:', mongoUri);
         } catch (memErr) {
-          console.log('⚠️ mongodb-memory-server недоступен. Инструкции:');
-          console.log('');
-          console.log('Вариант 1: Установите локальную MongoDB');
-          console.log('  Windows: https://www.mongodb.com/try/download/community');
-          console.log('  Затем используйте в .env: MONGODB_URI=mongodb://localhost:27017/testing-system');
-          console.log('');
-          console.log('Вариант 2: Используйте MongoDB Atlas (облако)');
-          console.log('  1. Перейдите на https://www.mongodb.com/cloud/atlas');
-          console.log('  2. Создайте бесплатный кластер');
-          console.log('  3. Скопируйте строку подключения в .env');
-          console.log('');
+          console.log('⚠️ mongodb-memory-server недоступен. Используйте MongoDB Atlas или локальную MongoDB.');
           throw memErr;
         }
       }
@@ -51,4 +41,3 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
-module.exports.mongoServer = mongoServer;
