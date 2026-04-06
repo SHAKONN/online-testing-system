@@ -4,7 +4,7 @@
   "description": "Online Testing System for University Preparation",
   "private": true,
   "scripts": {
-    "start": "bash run.sh && echo '\\n📖 После выполнения скрипта откройте 2 терминала с командами выше'",
+    "start": "cd backend && npm start",
     "setup": "bash run.sh",
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
     "backend": "cd backend && npm run dev",
