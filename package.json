@@ -1,0 +1,20 @@
+{
+  "name": "online-testing-system",
+  "version": "1.0.0",
+  "description": "Online Testing System for University Preparation",
+  "private": true,
+  "scripts": {
+    "start": "bash run.sh && echo '\\n📖 После выполнения скрипта откройте 2 терминала с командами выше'",
+    "setup": "bash run.sh",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm start",
+    "seed": "cd backend && npm run seed",
+    "mongo:up": "docker-compose up -d",
+    "mongo:down": "docker-compose down",
+    "mongo:logs": "docker logs online-testing-mongodb"
+  },
+  "dependencies": {
+    "concurrently": "^7.6.0"
+  }
+}

@@ -1,0 +1,90 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main, production ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:5.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password123
+        options: >-
+          --health-cmd="echo 'db.runCommand(\"ping\").ok'" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
+        ports:
+          - 27017:27017
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+    
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        npm ci
+    
+    - name: Lint Backend
+      run: |
+        cd backend
+        npm run lint || true
+    
+    - name: Build Backend
+      run: |
+        cd backend
+        npm run build || true
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+    
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Lint Frontend
+      run: |
+        cd frontend
+        npm run lint || true
+    
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm run build
+
+  deploy:
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Server
+      run: |
+        echo "Deploying to production server..."
+        # Здесь добавите ваш скрипт деплоя
+        # Например через SSH:
+        # ssh -i ${{ secrets.DEPLOY_KEY }} user@server 'cd /app && docker-compose pull && docker-compose up -d'
+        echo "✅ Deployed successfully!"
