@@ -1,4 +1,8 @@
-require('dotenv').config();
+// Загружаем .env только в development режиме
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('../config/database');
