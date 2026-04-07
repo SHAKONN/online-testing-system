@@ -61,6 +61,9 @@ export const testService = {
   
   getTestWithQuestions: (testId) =>
     api.get(`/tests/${testId}/questions`),
+
+  getTestById: (testId) =>
+    api.get(`/tests/${testId}`),
   
   createTest: (testData) =>
     api.post('/tests', testData),

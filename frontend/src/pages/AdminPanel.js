@@ -337,6 +337,7 @@ const AdminTests = () => {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingTestId, setEditingTestId] = useState(null);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [formData, setFormData] = useState({
@@ -426,11 +427,93 @@ const AdminTests = () => {
     }));
   };
 
+  const duplicateQuestionBlock = (questionIndex) => {
+    setFormData((prev) => {
+      const sourceQuestion = prev.questions[questionIndex];
+      const duplicatedQuestion = {
+        text: sourceQuestion.text,
+        difficulty: sourceQuestion.difficulty,
+        options: [...sourceQuestion.options],
+        correctAnswerIndex: sourceQuestion.correctAnswerIndex,
+        explanation: sourceQuestion.explanation,
+      };
+
+      return {
+        ...prev,
+        questions: [
+          ...prev.questions.slice(0, questionIndex + 1),
+          duplicatedQuestion,
+          ...prev.questions.slice(questionIndex + 1),
+        ],
+      };
+    });
+  };
+
   const removeQuestionBlock = (questionIndex) => {
     setFormData((prev) => ({
       ...prev,
       questions: prev.questions.filter((_, index) => index !== questionIndex),
     }));
+  };
+
+  const resetForm = () => {
+    setEditingTestId(null);
+    setFormData({
+      title: '',
+      description: '',
+      category: 'Математика',
+      timeLimit: 30,
+      questions: [
+        {
+          text: '',
+          difficulty: 'medium',
+          options: ['', '', '', ''],
+          correctAnswerIndex: 0,
+          explanation: '',
+        },
+      ],
+    });
+  };
+
+  const handleEditTest = async (testId) => {
+    try {
+      setSubmitError('');
+      setSubmitSuccess('');
+      const response = await testService.getTestById(testId);
+      const test = response.data;
+
+      setEditingTestId(test._id);
+      setShowForm(true);
+      setFormData({
+        title: test.title || '',
+        description: test.description || '',
+        category: test.category || 'Математика',
+        timeLimit: test.timeLimit || 30,
+        questions: Array.isArray(test.questions) && test.questions.length > 0
+          ? test.questions.map((question) => ({
+              _id: question._id,
+              text: question.text || '',
+              difficulty: question.difficulty || 'medium',
+              options: Array.isArray(question.options)
+                ? question.options.map((option) => option.text || '')
+                : ['', '', '', ''],
+              correctAnswerIndex: Number.isInteger(question.correctAnswerIndex) ? question.correctAnswerIndex : 0,
+              explanation: question.explanation || '',
+            }))
+          : [
+              {
+                text: '',
+                difficulty: 'medium',
+                options: ['', '', '', ''],
+                correctAnswerIndex: 0,
+                explanation: '',
+              },
+            ],
+      });
+    } catch (err) {
+      console.error('Ошибка загрузки теста для редактирования:', err);
+      setSubmitError(err.response?.data?.message || 'Не удалось загрузить тест для редактирования');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -467,7 +550,7 @@ const AdminTests = () => {
       }
 
       if (formData.title && formData.category) {
-        await testService.createTest({
+        const payload = {
           title: formData.title.trim(),
           description: formData.description.trim(),
           category: formData.category,
@@ -479,24 +562,16 @@ const AdminTests = () => {
             correctAnswerIndex: question.correctAnswerIndex,
             explanation: question.explanation.trim(),
           })),
-        });
+        };
+
+        if (editingTestId) {
+          await testService.updateTest(editingTestId, payload);
+        } else {
+          await testService.createTest(payload);
+        }
         setShowForm(false);
-        setSubmitSuccess('Тест успешно создан');
-        setFormData({
-          title: '',
-          description: '',
-          category: 'Математика',
-          timeLimit: 30,
-          questions: [
-            {
-              text: '',
-              difficulty: 'medium',
-              options: ['', '', '', ''],
-              correctAnswerIndex: 0,
-              explanation: '',
-            },
-          ],
-        });
+        setSubmitSuccess(editingTestId ? 'Тест успешно обновлен' : 'Тест успешно создан');
+        resetForm();
         loadTests();
       }
     } catch (err) {
@@ -518,13 +593,26 @@ const AdminTests = () => {
 
   return (
     <div>
-      <button onClick={() => setShowForm(!showForm)} className="btn-success mb-3">
+      <button
+        onClick={() => {
+          if (showForm) {
+            setShowForm(false);
+            resetForm();
+          } else {
+            setShowForm(true);
+            resetForm();
+          }
+        }}
+        className="btn-success mb-3"
+      >
         {showForm ? '✕ Отмена' : '+ Добавить тест'}
       </button>
 
       {showForm && (
         <div className="card mb-4">
-          <div className="card-header">Создать новый тест</div>
+          <div className="card-header">
+            {editingTestId ? 'Редактировать тест' : 'Создать новый тест'}
+          </div>
           {submitError && (
             <div className="alert alert-danger mt-2">{submitError}</div>
           )}
@@ -602,14 +690,23 @@ const AdminTests = () => {
                         <h3>Вопрос {questionIndex + 1}</h3>
                         <div className="text-muted">Категория: {formData.category}</div>
                       </div>
-                      <button
-                        type="button"
-                        className="btn-danger"
-                        onClick={() => removeQuestionBlock(questionIndex)}
-                        disabled={formData.questions.length === 1}
-                      >
-                        Удалить
-                      </button>
+                      <div className="test-builder-question-buttons">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => duplicateQuestionBlock(questionIndex)}
+                        >
+                          Дублировать
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-danger"
+                          onClick={() => removeQuestionBlock(questionIndex)}
+                          disabled={formData.questions.length === 1}
+                        >
+                          Удалить
+                        </button>
+                      </div>
                     </div>
 
                     <div className="form-group">
@@ -676,7 +773,9 @@ const AdminTests = () => {
               </div>
             </div>
 
-            <button type="submit" className="btn-success">Создать тест</button>
+            <button type="submit" className="btn-success">
+              {editingTestId ? 'Сохранить изменения' : 'Создать тест'}
+            </button>
           </form>
         </div>
       )}
@@ -700,6 +799,12 @@ const AdminTests = () => {
                 <div><strong>Вопросов:</strong> {test.questionCount}</div>
                 <div><strong>Время:</strong> {test.timeLimit} мин</div>
               </div>
+              <button
+                onClick={() => handleEditTest(test._id)}
+                className="btn-primary mt-2 admin-test-edit"
+              >
+                Редактировать
+              </button>
               <button
                 onClick={() => handleDeleteTest(test._id)}
                 className="btn-danger mt-2 admin-test-delete"

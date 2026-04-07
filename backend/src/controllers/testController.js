@@ -80,6 +80,25 @@ exports.getTestWithQuestions = async (req, res) => {
   }
 };
 
+// Получить тест со всеми вопросами для редактирования (admin)
+exports.getTestById = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const test = await Test.findById(testId)
+      .populate('questions')
+      .populate('createdBy', 'name');
+
+    if (!test) {
+      return res.status(404).json({ message: 'Тест не найден' });
+    }
+
+    res.json(test);
+  } catch (error) {
+    console.error('Ошибка получения теста:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
+};
+
 // Создать тест (admin)
 exports.createTest = async (req, res) => {
   try {
@@ -174,9 +193,9 @@ exports.createTest = async (req, res) => {
 exports.updateTest = async (req, res) => {
   try {
     const { testId } = req.params;
-    const { title, description, category, timeLimit, questionIds } = req.body;
+    const { title, description, category, timeLimit, questionIds, questions } = req.body;
 
-    const test = await Test.findById(testId);
+    const test = await Test.findById(testId).populate('questions');
     if (!test) {
       return res.status(404).json({ message: 'Тест не найден' });
     }
@@ -185,10 +204,83 @@ exports.updateTest = async (req, res) => {
     test.description = description || test.description;
     test.category = category || test.category;
     test.timeLimit = timeLimit || test.timeLimit;
-    
-    if (questionIds) {
-      test.questions = questionIds;
-      test.questionCount = questionIds.length;
+
+    let resolvedQuestionIds = Array.isArray(questionIds)
+      ? [...new Set(questionIds.filter(Boolean))]
+      : [];
+
+    if (Array.isArray(questions) && questions.length > 0) {
+      const updatedQuestionIds = [];
+
+      for (let index = 0; index < questions.length; index++) {
+        const question = questions[index];
+        const normalizedText = typeof question.text === 'string' ? question.text.trim() : '';
+        const normalizedOptions = Array.isArray(question.options)
+          ? question.options.map((option) => (typeof option === 'string' ? option.trim() : ''))
+          : [];
+        const normalizedCorrectAnswerIndex = Number(question.correctAnswerIndex);
+
+        if (!normalizedText) {
+          return res.status(400).json({ message: `В вопросе ${index + 1} отсутствует текст` });
+        }
+
+        if (normalizedOptions.length !== 4 || normalizedOptions.some((option) => !option)) {
+          return res.status(400).json({
+            message: `В вопросе ${index + 1} должно быть ровно 4 заполненных варианта ответа`,
+          });
+        }
+
+        if (
+          !Number.isInteger(normalizedCorrectAnswerIndex) ||
+          normalizedCorrectAnswerIndex < 0 ||
+          normalizedCorrectAnswerIndex >= normalizedOptions.length
+        ) {
+          return res.status(400).json({
+            message: `В вопросе ${index + 1} выбран некорректный правильный ответ`,
+          });
+        }
+
+        if (question._id) {
+          const existingQuestion = await Question.findById(question._id);
+
+          if (!existingQuestion) {
+            return res.status(404).json({ message: `Вопрос ${index + 1} не найден` });
+          }
+
+          existingQuestion.text = normalizedText;
+          existingQuestion.category = test.category;
+          existingQuestion.difficulty = question.difficulty || 'medium';
+          existingQuestion.options = normalizedOptions.map((option, optionIndex) => ({
+            text: option,
+            isCorrect: optionIndex === normalizedCorrectAnswerIndex,
+          }));
+          existingQuestion.correctAnswerIndex = normalizedCorrectAnswerIndex;
+          existingQuestion.explanation = typeof question.explanation === 'string' ? question.explanation.trim() : '';
+          await existingQuestion.save();
+          updatedQuestionIds.push(existingQuestion._id);
+        } else {
+          const createdQuestion = await Question.create({
+            text: normalizedText,
+            category: test.category,
+            difficulty: question.difficulty || 'medium',
+            options: normalizedOptions.map((option, optionIndex) => ({
+              text: option,
+              isCorrect: optionIndex === normalizedCorrectAnswerIndex,
+            })),
+            correctAnswerIndex: normalizedCorrectAnswerIndex,
+            explanation: typeof question.explanation === 'string' ? question.explanation.trim() : '',
+            createdBy: req.user.id,
+          });
+          updatedQuestionIds.push(createdQuestion._id);
+        }
+      }
+
+      resolvedQuestionIds = updatedQuestionIds;
+    }
+
+    if (resolvedQuestionIds.length > 0) {
+      test.questions = resolvedQuestionIds;
+      test.questionCount = resolvedQuestionIds.length;
     }
 
     await test.save();
