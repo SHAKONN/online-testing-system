@@ -329,7 +329,9 @@ const AdminQuestions = () => {
 // ===== ADMIN TESTS COMPONENT =====
 const AdminTests = () => {
   const [tests, setTests] = useState([]);
+  const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
@@ -338,11 +340,20 @@ const AdminTests = () => {
     description: '',
     category: 'Математика',
     timeLimit: 30,
+    questionIds: [],
   });
 
   useEffect(() => {
     loadTests();
   }, []);
+
+  useEffect(() => {
+    if (!showForm) {
+      return;
+    }
+
+    loadQuestionsByCategory(formData.category);
+  }, [showForm, formData.category]);
 
   const loadTests = async () => {
     try {
@@ -356,23 +367,69 @@ const AdminTests = () => {
     }
   };
 
+  const loadQuestionsByCategory = async (category) => {
+    try {
+      setQuestionsLoading(true);
+      const response = await questionService.getQuestionsByCategory(category);
+      setQuestions(response.data);
+    } catch (err) {
+      console.error('Ошибка загрузки вопросов категории:', err);
+      setQuestions([]);
+    } finally {
+      setQuestionsLoading(false);
+    }
+  };
+
+  const handleCategoryChange = (category) => {
+    setFormData((prev) => ({
+      ...prev,
+      category,
+      questionIds: [],
+    }));
+    setSubmitError('');
+    setSubmitSuccess('');
+  };
+
+  const toggleQuestionSelection = (questionId) => {
+    setFormData((prev) => ({
+      ...prev,
+      questionIds: prev.questionIds.includes(questionId)
+        ? prev.questionIds.filter((id) => id !== questionId)
+        : [...prev.questionIds, questionId],
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setSubmitError('');
       setSubmitSuccess('');
 
+      if (!formData.title.trim()) {
+        setSubmitError('Введите название теста');
+        return;
+      }
+
+      if (formData.questionIds.length === 0) {
+        setSubmitError('Выберите хотя бы один вопрос для теста');
+        return;
+      }
+
       if (formData.title && formData.category) {
         await testService.createTest({
           ...formData,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
         });
         setShowForm(false);
-        setSubmitSuccess('Тест успешно создан. В него автоматически добавлены вопросы выбранной категории.');
+        setSubmitSuccess('Тест успешно создан');
+        setQuestions([]);
         setFormData({
           title: '',
           description: '',
           category: 'Математика',
           timeLimit: 30,
+          questionIds: [],
         });
         loadTests();
       }
@@ -406,7 +463,7 @@ const AdminTests = () => {
             <div className="alert alert-danger mt-2">{submitError}</div>
           )}
           <div className="alert alert-info mt-2">
-            При создании теста будут автоматически добавлены все вопросы выбранной категории.
+            Выберите категорию и отметьте конкретные вопросы, которые должны войти в тест.
           </div>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -432,7 +489,7 @@ const AdminTests = () => {
                 <label>Категория</label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
                 >
                   <option>Математика</option>
                   <option>Русский язык</option>
@@ -452,6 +509,55 @@ const AdminTests = () => {
                   onChange={(e) => setFormData({...formData, timeLimit: parseInt(e.target.value)})}
                   min="5"
                 />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Вопросы для теста</label>
+              <div className="text-muted mb-2">
+                Выбрано вопросов: {formData.questionIds.length}
+              </div>
+              <div style={{
+                maxHeight: '280px',
+                overflowY: 'auto',
+                border: '1px solid #ecf0f1',
+                borderRadius: '4px',
+                padding: '0.75rem',
+              }}>
+                {questionsLoading ? (
+                  <div className="spinner"></div>
+                ) : questions.length > 0 ? (
+                  questions.map((question, idx) => (
+                    <label
+                      key={question._id}
+                      style={{
+                        display: 'flex',
+                        gap: '0.75rem',
+                        alignItems: 'flex-start',
+                        padding: '0.75rem 0',
+                        borderBottom: idx === questions.length - 1 ? 'none' : '1px solid #ecf0f1',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.questionIds.includes(question._id)}
+                        onChange={() => toggleQuestionSelection(question._id)}
+                        style={{ width: 'auto', marginTop: '0.25rem' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 'bold' }}>{question.text}</div>
+                        <div className="text-muted">
+                          Сложность: {question.difficulty}
+                        </div>
+                      </div>
+                    </label>
+                  ))
+                ) : (
+                  <div className="alert alert-warning" style={{ marginBottom: 0 }}>
+                    Для этой категории пока нет вопросов.
+                  </div>
+                )}
               </div>
             </div>
 

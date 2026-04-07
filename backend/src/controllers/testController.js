@@ -89,16 +89,24 @@ exports.createTest = async (req, res) => {
       return res.status(400).json({ message: 'Заполните обязательные поля' });
     }
 
-    let resolvedQuestionIds = Array.isArray(questionIds) ? questionIds.filter(Boolean) : [];
-
-    if (resolvedQuestionIds.length === 0) {
-      const categoryQuestions = await Question.find({ category }).select('_id');
-      resolvedQuestionIds = categoryQuestions.map((question) => question._id);
-    }
+    const resolvedQuestionIds = Array.isArray(questionIds)
+      ? [...new Set(questionIds.filter(Boolean))]
+      : [];
 
     if (resolvedQuestionIds.length === 0) {
       return res.status(400).json({
-        message: 'Для этой категории пока нет вопросов. Сначала добавьте вопросы, затем создайте тест.',
+        message: 'Выберите хотя бы один вопрос для теста.',
+      });
+    }
+
+    const existingQuestions = await Question.find({
+      _id: { $in: resolvedQuestionIds },
+      category,
+    }).select('_id');
+
+    if (existingQuestions.length !== resolvedQuestionIds.length) {
+      return res.status(400).json({
+        message: 'Некоторые выбранные вопросы не найдены или не относятся к выбранной категории.',
       });
     }
 
