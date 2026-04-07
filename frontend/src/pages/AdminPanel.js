@@ -405,6 +405,20 @@ const AdminTests = () => {
     }));
   };
 
+  const selectAllQuestions = () => {
+    setFormData((prev) => ({
+      ...prev,
+      questionIds: questions.map((question) => question._id),
+    }));
+  };
+
+  const clearSelectedQuestions = () => {
+    setFormData((prev) => ({
+      ...prev,
+      questionIds: [],
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -520,14 +534,34 @@ const AdminTests = () => {
 
             <div className="form-group">
               <label>Вопросы для теста</label>
-              <div className="text-muted mb-2">
-                Выбрано вопросов: {formData.questionIds.length}
+              <div className="question-picker-toolbar mb-2">
+                <div className="question-picker-count">
+                  Выбрано вопросов: <strong>{formData.questionIds.length}</strong> из {questions.length}
+                </div>
+                <div className="question-picker-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={selectAllQuestions}
+                    disabled={questionsLoading || questions.length === 0}
+                  >
+                    Выбрать все
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={clearSelectedQuestions}
+                    disabled={formData.questionIds.length === 0}
+                  >
+                    Очистить
+                  </button>
+                </div>
               </div>
-              <div style={{
-                maxHeight: '280px',
+              <div className="question-picker-list" style={{
+                maxHeight: '320px',
                 overflowY: 'auto',
                 border: '1px solid #ecf0f1',
-                borderRadius: '4px',
+                borderRadius: '8px',
                 padding: '0.75rem',
               }}>
                 {questionsLoading ? (
@@ -536,11 +570,12 @@ const AdminTests = () => {
                   questions.map((question, idx) => (
                     <label
                       key={question._id}
+                      className={`question-picker-item ${formData.questionIds.includes(question._id) ? 'question-picker-item-selected' : ''}`}
                       style={{
                         display: 'flex',
                         gap: '0.75rem',
                         alignItems: 'flex-start',
-                        padding: '0.75rem 0',
+                        padding: '0.9rem',
                         borderBottom: idx === questions.length - 1 ? 'none' : '1px solid #ecf0f1',
                         cursor: 'pointer',
                       }}
@@ -549,12 +584,16 @@ const AdminTests = () => {
                         type="checkbox"
                         checked={formData.questionIds.includes(question._id)}
                         onChange={() => toggleQuestionSelection(question._id)}
+                        className="question-picker-checkbox"
                         style={{ width: 'auto', marginTop: '0.25rem' }}
                       />
-                      <div>
-                        <div style={{ fontWeight: 'bold' }}>{question.text}</div>
-                        <div className="text-muted">
-                          Сложность: {question.difficulty}
+                      <div className="question-picker-body">
+                        <div className="question-picker-title">{question.text}</div>
+                        <div className="question-picker-meta">
+                          <span className={`difficulty-badge difficulty-${question.difficulty}`}>
+                            {question.difficulty === 'easy' ? 'Легкий' : question.difficulty === 'medium' ? 'Средний' : 'Сложный'}
+                          </span>
+                          <span className="text-muted">Категория: {question.category}</span>
                         </div>
                       </div>
                     </label>
@@ -581,18 +620,19 @@ const AdminTests = () => {
       ) : (
         <div className="grid grid-2">
           {tests.map(test => (
-            <div key={test._id} className="card">
+            <div key={test._id} className="card admin-test-card">
               <div className="card-header">{test.title}</div>
-              <p>{test.description}</p>
-              <div className="text-muted" style={{ fontSize: '0.9rem' }}>
-                <strong>Категория:</strong> {test.category}<br/>
-                <strong>Вопросов:</strong> {test.questionCount}<br/>
-                <strong>Время:</strong> {test.timeLimit} мин
+              <p className="admin-test-description">
+                {test.description || 'Описание не указано'}
+              </p>
+              <div className="admin-test-meta">
+                <div><strong>Категория:</strong> {test.category}</div>
+                <div><strong>Вопросов:</strong> {test.questionCount}</div>
+                <div><strong>Время:</strong> {test.timeLimit} мин</div>
               </div>
               <button
                 onClick={() => handleDeleteTest(test._id)}
-                className="btn-danger mt-2"
-                style={{ width: '100%' }}
+                className="btn-danger mt-2 admin-test-delete"
               >
                 Удалить
               </button>
