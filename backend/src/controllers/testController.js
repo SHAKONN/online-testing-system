@@ -83,19 +83,61 @@ exports.getTestWithQuestions = async (req, res) => {
 // Создать тест (admin)
 exports.createTest = async (req, res) => {
   try {
-    const { title, description, category, timeLimit, questionIds } = req.body;
+    const { title, description, category, timeLimit, questionIds, questions } = req.body;
 
     if (!title || !category) {
       return res.status(400).json({ message: 'Заполните обязательные поля' });
     }
 
-    const resolvedQuestionIds = Array.isArray(questionIds)
+    let resolvedQuestionIds = Array.isArray(questionIds)
       ? [...new Set(questionIds.filter(Boolean))]
       : [];
 
+    if (resolvedQuestionIds.length === 0 && Array.isArray(questions) && questions.length > 0) {
+      const preparedQuestions = questions.map((question, index) => {
+        const normalizedText = typeof question.text === 'string' ? question.text.trim() : '';
+        const normalizedOptions = Array.isArray(question.options)
+          ? question.options.map((option) => (typeof option === 'string' ? option.trim() : ''))
+          : [];
+        const normalizedCorrectAnswerIndex = Number(question.correctAnswerIndex);
+
+        if (!normalizedText) {
+          throw new Error(`В вопросе ${index + 1} отсутствует текст`);
+        }
+
+        if (normalizedOptions.length !== 4 || normalizedOptions.some((option) => !option)) {
+          throw new Error(`В вопросе ${index + 1} должно быть ровно 4 заполненных варианта ответа`);
+        }
+
+        if (
+          !Number.isInteger(normalizedCorrectAnswerIndex) ||
+          normalizedCorrectAnswerIndex < 0 ||
+          normalizedCorrectAnswerIndex >= normalizedOptions.length
+        ) {
+          throw new Error(`В вопросе ${index + 1} выбран некорректный правильный ответ`);
+        }
+
+        return {
+          text: normalizedText,
+          category,
+          difficulty: question.difficulty || 'medium',
+          options: normalizedOptions.map((option, optionIndex) => ({
+            text: option,
+            isCorrect: optionIndex === normalizedCorrectAnswerIndex,
+          })),
+          correctAnswerIndex: normalizedCorrectAnswerIndex,
+          explanation: typeof question.explanation === 'string' ? question.explanation.trim() : '',
+          createdBy: req.user.id,
+        };
+      });
+
+      const createdQuestions = await Question.insertMany(preparedQuestions);
+      resolvedQuestionIds = createdQuestions.map((question) => question._id);
+    }
+
     if (resolvedQuestionIds.length === 0) {
       return res.status(400).json({
-        message: 'Выберите хотя бы один вопрос для теста.',
+        message: 'Добавьте хотя бы один вопрос для теста.',
       });
     }
 

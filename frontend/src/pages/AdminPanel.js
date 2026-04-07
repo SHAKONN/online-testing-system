@@ -335,9 +335,7 @@ const AdminQuestions = () => {
 // ===== ADMIN TESTS COMPONENT =====
 const AdminTests = () => {
   const [tests, setTests] = useState([]);
-  const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [questionsLoading, setQuestionsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
@@ -346,20 +344,20 @@ const AdminTests = () => {
     description: '',
     category: 'Математика',
     timeLimit: 30,
-    questionIds: [],
+    questions: [
+      {
+        text: '',
+        difficulty: 'medium',
+        options: ['', '', '', ''],
+        correctAnswerIndex: 0,
+        explanation: '',
+      },
+    ],
   });
 
   useEffect(() => {
     loadTests();
   }, []);
-
-  useEffect(() => {
-    if (!showForm) {
-      return;
-    }
-
-    loadQuestionsByCategory(formData.category);
-  }, [showForm, formData.category]);
 
   const loadTests = async () => {
     try {
@@ -373,49 +371,65 @@ const AdminTests = () => {
     }
   };
 
-  const loadQuestionsByCategory = async (category) => {
-    try {
-      setQuestionsLoading(true);
-      const response = await questionService.getQuestionsByCategory(category);
-      setQuestions(response.data);
-    } catch (err) {
-      console.error('Ошибка загрузки вопросов категории:', err);
-      setQuestions([]);
-    } finally {
-      setQuestionsLoading(false);
-    }
-  };
-
   const handleCategoryChange = (category) => {
     setFormData((prev) => ({
       ...prev,
       category,
-      questionIds: [],
     }));
     setSubmitError('');
     setSubmitSuccess('');
   };
 
-  const toggleQuestionSelection = (questionId) => {
+  const updateQuestionField = (questionIndex, field, value) => {
     setFormData((prev) => ({
       ...prev,
-      questionIds: prev.questionIds.includes(questionId)
-        ? prev.questionIds.filter((id) => id !== questionId)
-        : [...prev.questionIds, questionId],
+      questions: prev.questions.map((question, index) =>
+        index === questionIndex
+          ? { ...question, [field]: value }
+          : question
+      ),
     }));
   };
 
-  const selectAllQuestions = () => {
+  const updateQuestionOption = (questionIndex, optionIndex, value) => {
     setFormData((prev) => ({
       ...prev,
-      questionIds: questions.map((question) => question._id),
+      questions: prev.questions.map((question, index) => {
+        if (index !== questionIndex) {
+          return question;
+        }
+
+        const nextOptions = [...question.options];
+        nextOptions[optionIndex] = value;
+
+        return {
+          ...question,
+          options: nextOptions,
+        };
+      }),
     }));
   };
 
-  const clearSelectedQuestions = () => {
+  const addQuestionBlock = () => {
     setFormData((prev) => ({
       ...prev,
-      questionIds: [],
+      questions: [
+        ...prev.questions,
+        {
+          text: '',
+          difficulty: 'medium',
+          options: ['', '', '', ''],
+          correctAnswerIndex: 0,
+          explanation: '',
+        },
+      ],
+    }));
+  };
+
+  const removeQuestionBlock = (questionIndex) => {
+    setFormData((prev) => ({
+      ...prev,
+      questions: prev.questions.filter((_, index) => index !== questionIndex),
     }));
   };
 
@@ -430,26 +444,58 @@ const AdminTests = () => {
         return;
       }
 
-      if (formData.questionIds.length === 0) {
-        setSubmitError('Выберите хотя бы один вопрос для теста');
+      if (formData.questions.length === 0) {
+        setSubmitError('Добавьте хотя бы один вопрос');
+        return;
+      }
+
+      const invalidQuestionIndex = formData.questions.findIndex((question) => {
+        if (!question.text.trim()) {
+          return true;
+        }
+
+        if (!question.options.every((option) => option.trim())) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (invalidQuestionIndex !== -1) {
+        setSubmitError(`Заполните полностью вопрос ${invalidQuestionIndex + 1}`);
         return;
       }
 
       if (formData.title && formData.category) {
         await testService.createTest({
-          ...formData,
           title: formData.title.trim(),
           description: formData.description.trim(),
+          category: formData.category,
+          timeLimit: formData.timeLimit,
+          questions: formData.questions.map((question) => ({
+            text: question.text.trim(),
+            difficulty: question.difficulty,
+            options: question.options.map((option) => option.trim()),
+            correctAnswerIndex: question.correctAnswerIndex,
+            explanation: question.explanation.trim(),
+          })),
         });
         setShowForm(false);
         setSubmitSuccess('Тест успешно создан');
-        setQuestions([]);
         setFormData({
           title: '',
           description: '',
           category: 'Математика',
           timeLimit: 30,
-          questionIds: [],
+          questions: [
+            {
+              text: '',
+              difficulty: 'medium',
+              options: ['', '', '', ''],
+              correctAnswerIndex: 0,
+              explanation: '',
+            },
+          ],
         });
         loadTests();
       }
@@ -483,7 +529,7 @@ const AdminTests = () => {
             <div className="alert alert-danger mt-2">{submitError}</div>
           )}
           <div className="alert alert-info mt-2">
-            Выберите категорию и отметьте конкретные вопросы, которые должны войти в тест.
+            Сначала заполните данные теста, затем создайте новые вопросы прямо в этой форме.
           </div>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -533,76 +579,100 @@ const AdminTests = () => {
             </div>
 
             <div className="form-group">
-              <label>Вопросы для теста</label>
+              <div className="question-builder-header">
+                <label style={{ marginBottom: 0 }}>Вопросы для теста</label>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={addQuestionBlock}
+                >
+                  + Добавить вопрос
+                </button>
+              </div>
               <div className="question-picker-toolbar mb-2">
                 <div className="question-picker-count">
-                  Выбрано вопросов: <strong>{formData.questionIds.length}</strong> из {questions.length}
-                </div>
-                <div className="question-picker-actions">
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={selectAllQuestions}
-                    disabled={questionsLoading || questions.length === 0}
-                  >
-                    Выбрать все
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={clearSelectedQuestions}
-                    disabled={formData.questionIds.length === 0}
-                  >
-                    Очистить
-                  </button>
+                  Вопросов в тесте: <strong>{formData.questions.length}</strong>
                 </div>
               </div>
-              <div className="question-picker-list" style={{
-                maxHeight: '320px',
-                overflowY: 'auto',
-                border: '1px solid #ecf0f1',
-                borderRadius: '8px',
-                padding: '0.75rem',
-              }}>
-                {questionsLoading ? (
-                  <div className="spinner"></div>
-                ) : questions.length > 0 ? (
-                  questions.map((question, idx) => (
-                    <label
-                      key={question._id}
-                      className={`question-picker-item ${formData.questionIds.includes(question._id) ? 'question-picker-item-selected' : ''}`}
-                      style={{
-                        display: 'flex',
-                        gap: '0.75rem',
-                        alignItems: 'flex-start',
-                        padding: '0.9rem',
-                        borderBottom: idx === questions.length - 1 ? 'none' : '1px solid #ecf0f1',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.questionIds.includes(question._id)}
-                        onChange={() => toggleQuestionSelection(question._id)}
-                        className="question-picker-checkbox"
-                        style={{ width: 'auto', marginTop: '0.25rem' }}
-                      />
-                      <div className="question-picker-body">
-                        <div className="question-picker-title">{question.text}</div>
-                        <div className="question-picker-meta">
-                          <span className={`difficulty-badge difficulty-${question.difficulty}`}>
-                            {question.difficulty === 'easy' ? 'Легкий' : question.difficulty === 'medium' ? 'Средний' : 'Сложный'}
-                          </span>
-                          <span className="text-muted">Категория: {question.category}</span>
-                        </div>
+              <div className="test-builder-stack">
+                {formData.questions.map((question, questionIndex) => (
+                  <div key={questionIndex} className="test-builder-question-card">
+                    <div className="test-builder-question-head">
+                      <div>
+                        <h3>Вопрос {questionIndex + 1}</h3>
+                        <div className="text-muted">Категория: {formData.category}</div>
                       </div>
-                    </label>
-                  ))
-                ) : (
-                  <div className="alert alert-warning" style={{ marginBottom: 0 }}>
-                    Для этой категории пока нет вопросов.
+                      <button
+                        type="button"
+                        className="btn-danger"
+                        onClick={() => removeQuestionBlock(questionIndex)}
+                        disabled={formData.questions.length === 1}
+                      >
+                        Удалить
+                      </button>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Текст вопроса</label>
+                      <textarea
+                        value={question.text}
+                        onChange={(e) => updateQuestionField(questionIndex, 'text', e.target.value)}
+                        placeholder="Введите текст вопроса"
+                      />
+                    </div>
+
+                    <div className="grid grid-2">
+                      <div className="form-group">
+                        <label>Сложность</label>
+                        <select
+                          value={question.difficulty}
+                          onChange={(e) => updateQuestionField(questionIndex, 'difficulty', e.target.value)}
+                        >
+                          <option value="easy">Легкий</option>
+                          <option value="medium">Средний</option>
+                          <option value="hard">Сложный</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Варианты ответа</label>
+                      {question.options.map((option, optionIndex) => (
+                        <div
+                          key={optionIndex}
+                          className="answer-option-row"
+                          style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
+                        >
+                          <input
+                            type="radio"
+                            name={`test-question-correct-${questionIndex}`}
+                            checked={question.correctAnswerIndex === optionIndex}
+                            onChange={() => updateQuestionField(questionIndex, 'correctAnswerIndex', optionIndex)}
+                            className="answer-option-radio"
+                            style={{ marginTop: '0.75rem' }}
+                          />
+                          <input
+                            type="text"
+                            value={option}
+                            onChange={(e) => updateQuestionOption(questionIndex, optionIndex, e.target.value)}
+                            placeholder={`Вариант ${optionIndex + 1}`}
+                            className="answer-option-input"
+                            style={{ flex: 1 }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="form-group">
+                      <label>Объяснение (опционально)</label>
+                      <textarea
+                        value={question.explanation}
+                        onChange={(e) => updateQuestionField(questionIndex, 'explanation', e.target.value)}
+                        placeholder="Краткое объяснение правильного ответа"
+                      />
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             </div>
 
