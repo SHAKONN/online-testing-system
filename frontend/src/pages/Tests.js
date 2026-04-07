@@ -2,22 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { testService } from '../services/api';
 
+const categories = [
+  'Математика',
+  'Русский язык',
+  'Физика',
+  'Химия',
+  'Биология',
+  'История',
+  'География',
+  'Английский язык',
+];
+
+const categoryAccents = {
+  Математика: 'category-accent-math',
+  'Русский язык': 'category-accent-language',
+  Физика: 'category-accent-science',
+  Химия: 'category-accent-chemistry',
+  Биология: 'category-accent-biology',
+  История: 'category-accent-history',
+  География: 'category-accent-geo',
+  'Английский язык': 'category-accent-english',
+};
+
+const formatAverage = (value) => {
+  if (!value) return 'Новых попыток пока нет';
+  return `${Math.round(value)}% средний результат`;
+};
+
 const Tests = () => {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-
-  const categories = [
-    'Математика',
-    'Русский язык',
-    'Физика',
-    'Химия',
-    'Биология',
-    'История',
-    'География',
-    'Английский язык',
-  ];
 
   useEffect(() => {
     loadTests();
@@ -27,12 +43,10 @@ const Tests = () => {
     try {
       setLoading(true);
       setError('');
-      let response;
-      if (selectedCategory) {
-        response = await testService.getTestsByCategory(selectedCategory);
-      } else {
-        response = await testService.getAllTests();
-      }
+      const response = selectedCategory
+        ? await testService.getTestsByCategory(selectedCategory)
+        : await testService.getAllTests();
+
       setTests(response.data);
     } catch (err) {
       setError('Ошибка при загрузке тестов');
@@ -42,60 +56,137 @@ const Tests = () => {
     }
   };
 
+  const totalAttempts = tests.reduce((sum, test) => sum + (test.totalAttempts || 0), 0);
+  const averageQuestionCount = tests.length > 0
+    ? Math.round(tests.reduce((sum, test) => sum + (test.questionCount || 0), 0) / tests.length)
+    : 0;
+
   return (
     <div className="container mt-4">
-      <h1 className="mb-3">📝 Доступные тесты</h1>
+      <section className="page-hero tests-hero">
+        <div className="page-hero-copy">
+          <span className="page-kicker">Каталог тестов</span>
+          <h1>Подготовка по предметам в одном месте</h1>
+          <p>
+            Выбирай нужную категорию, отслеживай свои прошлые попытки и запускай тест с понятным
+            таймером и разбором ответов после завершения.
+          </p>
+        </div>
+        <div className="page-hero-stats">
+          <div className="hero-stat-card">
+            <strong>{tests.length}</strong>
+            <span>доступных тестов</span>
+          </div>
+          <div className="hero-stat-card">
+            <strong>{totalAttempts}</strong>
+            <span>попыток уже выполнено</span>
+          </div>
+          <div className="hero-stat-card">
+            <strong>{averageQuestionCount || 0}</strong>
+            <span>вопросов в среднем</span>
+          </div>
+        </div>
+      </section>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Фильтр по категориям */}
-      <div className="card mb-4">
-        <h3>Фильтр по категориям:</h3>
-        <div className="category-filter-list">
+      <section className="card panel-card mb-4">
+        <div className="panel-card-header">
+          <div>
+            <h2>Фильтр по категориям</h2>
+            <p className="text-muted">Быстрый переход к нужному предмету без лишнего поиска.</p>
+          </div>
+          {selectedCategory && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setSelectedCategory('')}
+            >
+              Сбросить фильтр
+            </button>
+          )}
+        </div>
+
+        <div className="category-pill-list">
           <button
-            className={selectedCategory === '' ? 'btn-primary' : 'btn-secondary'}
+            className={selectedCategory === '' ? 'btn-primary category-pill' : 'btn-secondary category-pill'}
             onClick={() => setSelectedCategory('')}
           >
-            Все
+            Все тесты
           </button>
-          {categories.map(cat => (
+          {categories.map((category) => (
             <button
-              key={cat}
-              className={selectedCategory === cat ? 'btn-primary' : 'btn-secondary'}
-              onClick={() => setSelectedCategory(cat)}
+              key={category}
+              className={selectedCategory === category ? 'btn-primary category-pill' : 'btn-secondary category-pill'}
+              onClick={() => setSelectedCategory(category)}
             >
-              {cat}
+              {category}
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
       {loading ? (
-        <div className="spinner"></div>
+        <div className="center-content"><div className="spinner"></div></div>
       ) : tests.length > 0 ? (
-        <div className="grid grid-2">
-          {tests.map(test => (
-            <div key={test._id} className="card">
-              <div className="card-header">{test.title}</div>
-              <p>{test.description}</p>
-              <div className="mb-2 test-card-meta">
-                <strong>Категория:</strong> {test.category}<br/>
-                <strong>Вопросов:</strong> {test.questionCount}<br/>
-                <strong>Время:</strong> {test.timeLimit} минут<br/>
-                <strong>Попыток:</strong> {test.totalAttempts}<br/>
-                {test.averageScore > 0 && (
-                  <><strong>Средний балл:</strong> {Math.round(test.averageScore)}%</>
-                )}
-              </div>
-              <Link to={`/test/${test._id}`} className="btn-primary test-card-action">
-                Начать тест
-              </Link>
-            </div>
-          ))}
-        </div>
+        <section className="test-card-grid">
+          {tests.map((test) => {
+            const accentClass = categoryAccents[test.category] || 'category-accent-default';
+            return (
+              <article key={test._id} className={`test-showcase-card ${accentClass}`}>
+                <div className="test-showcase-head">
+                  <span className="test-category-badge">{test.category}</span>
+                  <span className="test-attempts-badge">
+                    {test.totalAttempts > 0 ? `${test.totalAttempts} попыток` : 'Новый тест'}
+                  </span>
+                </div>
+
+                <h3>{test.title}</h3>
+                <p className="test-showcase-description">
+                  {test.description || 'Описание пока не добавлено, но тест уже доступен для прохождения.'}
+                </p>
+
+                <div className="test-showcase-metrics">
+                  <div>
+                    <span>Вопросы</span>
+                    <strong>{test.questionCount}</strong>
+                  </div>
+                  <div>
+                    <span>Время</span>
+                    <strong>{test.timeLimit} мин</strong>
+                  </div>
+                  <div>
+                    <span>Успеваемость</span>
+                    <strong>{test.averageScore ? `${Math.round(test.averageScore)}%` : 'Н/Д'}</strong>
+                  </div>
+                </div>
+
+                <div className="test-showcase-progress">
+                  <div className="test-showcase-progress-bar">
+                    <div
+                      className="test-showcase-progress-fill"
+                      style={{ width: `${Math.max(8, Math.round(test.averageScore || 8))}%` }}
+                    ></div>
+                  </div>
+                  <span>{formatAverage(test.averageScore)}</span>
+                </div>
+
+                <Link to={`/test/${test._id}`} className="btn-primary test-showcase-action">
+                  Начать тест
+                </Link>
+              </article>
+            );
+          })}
+        </section>
       ) : (
-        <div className="alert alert-info" style={{ textAlign: 'center' }}>
-          Тесты в этой категории не найдены
+        <div className="empty-state-card">
+          <h2>Тесты пока не найдены</h2>
+          <p>
+            Для выбранной категории ещё нет доступных тестов. Попробуй другой предмет или зайди позже.
+          </p>
+          <button type="button" className="btn-primary" onClick={() => setSelectedCategory('')}>
+            Показать все тесты
+          </button>
         </div>
       )}
     </div>

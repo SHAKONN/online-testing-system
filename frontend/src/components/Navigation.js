@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import '../styles/index.css';
 
@@ -13,13 +13,19 @@ const Navigation = () => {
   };
 
   const closeMenu = () => setMenuOpen(false);
+  const getLinkClassName = ({ isActive }) => (isActive ? 'nav-link-active' : '');
 
   return (
     <nav>
-      <div className="container">
+      <div className="container nav-shell">
         <Link to="/" className="nav-logo" onClick={closeMenu}>
-          🎓 Система тестирования
+          <span className="nav-logo-mark">🎓</span>
+          <span className="nav-logo-text">
+            <strong>Система тестирования</strong>
+            <small>Подготовка и результаты</small>
+          </span>
         </Link>
+
         <button
           type="button"
           className="nav-toggle"
@@ -29,27 +35,28 @@ const Navigation = () => {
         >
           ☰
         </button>
+
         <ul className={`nav-links ${menuOpen ? 'nav-links-open' : ''}`}>
-          {isAuthenticated && (
+          {isAuthenticated ? (
             <>
-              <li><Link to="/tests" onClick={closeMenu}>Тесты</Link></li>
-              <li><Link to="/results" onClick={closeMenu}>Мои результаты</Link></li>
-              <li><Link to="/leaderboard" onClick={closeMenu}>Лидерборд</Link></li>
+              <li><NavLink to="/tests" className={getLinkClassName} onClick={closeMenu}>Тесты</NavLink></li>
+              <li><NavLink to="/results" className={getLinkClassName} onClick={closeMenu}>Мои результаты</NavLink></li>
+              <li><NavLink to="/leaderboard" className={getLinkClassName} onClick={closeMenu}>Лидерборд</NavLink></li>
               {user?.role === 'admin' && (
-                <li><Link to="/admin" onClick={closeMenu}>Админ панель</Link></li>
+                <li><NavLink to="/admin" className={getLinkClassName} onClick={closeMenu}>Админ панель</NavLink></li>
               )}
-              <li className="text-muted nav-user">
-                Привет, {user?.name}!
+              <li className="nav-user-chip">
+                <span>{user?.name}</span>
+                <small>{user?.role === 'admin' ? 'Администратор' : 'Пользователь'}</small>
               </li>
               <li>
                 <button onClick={handleLogout}>Выход</button>
               </li>
             </>
-          )}
-          {!isAuthenticated && (
+          ) : (
             <>
-              <li><Link to="/login" onClick={closeMenu}>Вход</Link></li>
-              <li><Link to="/register" onClick={closeMenu}>Регистрация</Link></li>
+              <li><NavLink to="/login" className={getLinkClassName} onClick={closeMenu}>Вход</NavLink></li>
+              <li><NavLink to="/register" className={getLinkClassName} onClick={closeMenu}>Регистрация</NavLink></li>
             </>
           )}
         </ul>

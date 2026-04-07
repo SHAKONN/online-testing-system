@@ -23,7 +23,7 @@ const TestTaking = () => {
       setLoading(true);
       const response = await testService.getTestWithQuestions(testId);
       setTest(response.data);
-      setTimeLeft(response.data.timeLimit * 60); // Convert to seconds
+      setTimeLeft(response.data.timeLimit * 60);
       setAnswers(new Array(response.data.questions.length).fill(null));
     } catch (err) {
       setError('Ошибка при загрузке теста');
@@ -33,18 +33,18 @@ const TestTaking = () => {
     }
   };
 
-  // Timer effect
   useEffect(() => {
-    if (!testStarted || !test || timeLeft === 0) return;
+    if (!testStarted || !test) return;
 
-    if (timeLeft === 0) {
+    if (timeLeft <= 0) {
       handleSubmit();
       return;
     }
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 0) {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
           handleSubmit();
           return 0;
         }
@@ -60,20 +60,29 @@ const TestTaking = () => {
   };
 
   const handleAnswerSelect = (optionIndex) => {
-    const newAnswers = [...answers];
-    newAnswers[currentQuestionIndex] = optionIndex;
-    setAnswers(newAnswers);
+    setAnswers((prev) => {
+      const nextAnswers = [...prev];
+      nextAnswers[currentQuestionIndex] = optionIndex;
+      return nextAnswers;
+    });
+  };
+
+  const handleQuestionJump = (index) => {
+    setCurrentQuestionIndex(index);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNext = () => {
     if (currentQuestionIndex < test.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentQuestionIndex((prev) => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handlePrev = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      setCurrentQuestionIndex((prev) => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -89,7 +98,6 @@ const TestTaking = () => {
 
       const timeSpent = (test.timeLimit * 60) - timeLeft;
       const response = await resultService.submitTest(testId, testAnswers, timeSpent);
-      
       navigate(`/result/${response.data.result._id}`);
     } catch (err) {
       setError('Ошибка при отправке результатов');
@@ -112,187 +120,164 @@ const TestTaking = () => {
     );
   }
 
+  const answeredCount = answers.filter((answer) => answer !== null).length;
+  const progress = ((currentQuestionIndex + 1) / test.questions.length) * 100;
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+
   if (!testStarted) {
     return (
-      <div className="center-content">
-        <div className="card" style={{ maxWidth: '600px' }}>
-          <div className="card-header">{test.title}</div>
-          <p><strong>Описание:</strong> {test.description}</p>
-          <p><strong>Количество вопросов:</strong> {test.totalQuestions}</p>
-          <p><strong>Время на тест:</strong> {test.timeLimit} минут</p>
-          <p><strong>Категория:</strong> {test.category}</p>
-          
-          <div className="alert alert-info">
-            📌 <strong>Инструкции:</strong><br/>
-            • Вам будут предложены вопросы с четырьмя вариантами ответов<br/>
-            • Выбирайте правильный ответ и переходите к следующему<br/>
-            • Время ограничено - тест завершится автоматически<br/>
-            • Вы сможете просмотреть результаты после завершения
+      <div className="container mt-4">
+        <section className="test-intro-layout">
+          <div className="test-intro-main card">
+            <span className="page-kicker">Готов к запуску</span>
+            <h1>{test.title}</h1>
+            <p className="test-intro-description">
+              {test.description || 'Тест без описания. Ниже собрана ключевая информация перед стартом.'}
+            </p>
+
+            <div className="test-intro-summary">
+              <div>
+                <span>Категория</span>
+                <strong>{test.category}</strong>
+              </div>
+              <div>
+                <span>Вопросов</span>
+                <strong>{test.totalQuestions}</strong>
+              </div>
+              <div>
+                <span>Лимит времени</span>
+                <strong>{test.timeLimit} минут</strong>
+              </div>
+            </div>
+
+            <button onClick={handleStartTest} className="btn-success test-intro-action">
+              Начать тест
+            </button>
           </div>
 
-          <button 
-            onClick={handleStartTest} 
-            className="btn-success" 
-            style={{ width: '100%', padding: '1rem', fontSize: '1.1rem' }}
-          >
-            ▶ Начать тест
-          </button>
-        </div>
+          <aside className="test-intro-side card">
+            <h2>Как всё пройдёт</h2>
+            <ul className="check-list">
+              <li>В каждом вопросе один правильный ответ.</li>
+              <li>Можно свободно переключаться между вопросами до отправки.</li>
+              <li>Таймер идёт непрерывно и завершит тест автоматически.</li>
+              <li>После завершения ты увидишь процент, правильные ответы и разбор.</li>
+            </ul>
+          </aside>
+        </section>
       </div>
     );
   }
 
   const currentQuestion = test.questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / test.questions.length) * 100;
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
 
   return (
     <div className="container mt-4">
-      {/* Header with timer */}
-      <div style={{ 
-        background: '#2c3e50', 
-        color: 'white', 
-        padding: '1rem', 
-        borderRadius: '4px',
-        marginBottom: '2rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}
-      className="test-taking-header"
-      >
-        <div className="test-taking-header-main">
-          <h3 style={{ margin: 0, color: 'white' }}>{test.title}</h3>
-          <p style={{ margin: '0.5rem 0 0', color: '#ecf0f1' }}>
-            Вопрос {currentQuestionIndex + 1} из {test.questions.length}
-          </p>
-        </div>
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }} className="test-taking-timer">
-          ⏱ {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-        </div>
-      </div>
- 
-      {/* Progress bar */}
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{
-          background: '#ecf0f1',
-          height: '8px',
-          borderRadius: '4px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            background: '#3498db',
-            height: '100%',
-            width: `${progress}%`,
-            transition: 'width 0.3s'
-          }}></div>
-        </div>
-        <p style={{ textAlign: 'center', marginTop: '0.5rem', color: '#7f8c8d' }}>
-          {Math.round(progress)}%
-        </p>
-      </div>
+      <section className="test-session-shell">
+        <div className="test-session-main">
+          <div className="test-session-header">
+            <div>
+              <span className="page-kicker">Прохождение теста</span>
+              <h1>{test.title}</h1>
+              <p>
+                Вопрос {currentQuestionIndex + 1} из {test.questions.length}
+              </p>
+            </div>
+            <div className={`test-session-timer ${timeLeft <= 60 ? 'test-session-timer-danger' : ''}`}>
+              <span>Осталось</span>
+              <strong>{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</strong>
+            </div>
+          </div>
 
-      {/* Question */}
-      <div className="card mb-4">
-        <div className="card-header">{currentQuestion.text}</div>
-        
-        <div style={{ marginTop: '1.5rem' }}>
-          {currentQuestion.options.map((option, index) => (
-            <label key={index} className="test-option-card" style={{
-              display: 'block',
-              margin: '1rem 0',
-              padding: '1rem',
-              border: `2px solid ${answers[currentQuestionIndex] === index ? '#3498db' : '#ecf0f1'}`,
-              borderRadius: '4px',
-              cursor: 'pointer',
-              background: answers[currentQuestionIndex] === index ? '#ebf5fb' : 'white',
-              transition: 'all 0.3s'
-            }}>
-              <input
-                type="radio"
-                name="answer"
-                value={index}
-                checked={answers[currentQuestionIndex] === index}
-                onChange={() => handleAnswerSelect(index)}
-                className="test-option-radio"
-                style={{ marginRight: '0.5rem' }}
-              />
-              <span>{option.text}</span>
-            </label>
-          ))}
+          <div className="test-session-progress">
+            <div className="test-session-progress-bar">
+              <div className="test-session-progress-fill" style={{ width: `${progress}%` }}></div>
+            </div>
+            <div className="test-session-progress-meta">
+              <span>{answeredCount} из {test.questions.length} уже отмечены</span>
+              <span>{Math.round(progress)}% маршрута пройдено</span>
+            </div>
+          </div>
+
+          <article className="card question-stage-card">
+            <div className="question-stage-topline">
+              <span className="question-order-chip">Вопрос {currentQuestionIndex + 1}</span>
+              <span className="question-category-chip">{test.category}</span>
+            </div>
+
+            <h2 className="question-stage-title">{currentQuestion.text}</h2>
+
+            <div className="question-options-stack">
+              {currentQuestion.options.map((option, index) => {
+                const selected = answers[currentQuestionIndex] === index;
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`question-option-button ${selected ? 'question-option-button-selected' : ''}`}
+                    onClick={() => handleAnswerSelect(index)}
+                  >
+                    <span className="question-option-marker">{String.fromCharCode(65 + index)}</span>
+                    <span className="question-option-text">{option.text}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </article>
+
+          <div className="test-session-actions">
+            <button onClick={handlePrev} className="btn-secondary" disabled={currentQuestionIndex === 0}>
+              Предыдущий
+            </button>
+
+            {currentQuestionIndex === test.questions.length - 1 ? (
+              <button onClick={handleSubmit} className="btn-success" disabled={submitting}>
+                {submitting ? 'Отправка...' : 'Завершить тест'}
+              </button>
+            ) : (
+              <button onClick={handleNext} className="btn-primary">
+                Следующий вопрос
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Navigation buttons */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '1rem', 
-        justifyContent: 'space-between',
-        marginBottom: '2rem'
-      }}
-      className="test-taking-actions"
-      >
-        <button 
-          onClick={handlePrev} 
-          className="btn-secondary"
-          disabled={currentQuestionIndex === 0}
-        >
-          ← Предыдущий
-        </button>
+        <aside className="test-session-sidebar card">
+          <div className="test-session-sidebar-head">
+            <h3>Навигация</h3>
+            <p className="text-muted">Серые не отвечены, синие активны, зелёные заполнены.</p>
+          </div>
 
-        {currentQuestionIndex === test.questions.length - 1 ? (
-          <button 
-            onClick={handleSubmit} 
-            className="btn-success"
-            disabled={submitting}
-          >
-            {submitting ? 'Отправка...' : '✓ Завершить тест'}
-          </button>
-        ) : (
-          <button 
-            onClick={handleNext} 
-            className="btn-primary"
-          >
-            Следующий →
-          </button>
-        )}
-      </div>
+          <div className="question-dot-grid">
+            {test.questions.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={[
+                  'question-dot',
+                  idx === currentQuestionIndex ? 'question-dot-current' : '',
+                  answers[idx] !== null ? 'question-dot-answered' : '',
+                ].join(' ').trim()}
+                onClick={() => handleQuestionJump(idx)}
+              >
+                {idx + 1}
+              </button>
+            ))}
+          </div>
 
-      {/* Questions indicator */}
-      <div style={{ 
-        display: 'flex', 
-        flexWrap: 'wrap', 
-        gap: '0.5rem',
-        padding: '1rem',
-        background: '#ecf0f1',
-        borderRadius: '4px'
-      }}
-      className="test-question-indicator"
-      >
-        {test.questions.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setCurrentQuestionIndex(idx)}
-            style={{
-              width: '40px',
-              height: '40px',
-              padding: 0,
-              background: 
-                idx === currentQuestionIndex ? '#3498db' :
-                answers[idx] !== null ? '#27ae60' : 
-                '#95a5a6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            {idx + 1}
-          </button>
-        ))}
-      </div>
+          <div className="test-session-sidebar-summary">
+            <div>
+              <span>Отвечено</span>
+              <strong>{answeredCount}</strong>
+            </div>
+            <div>
+              <span>Осталось</span>
+              <strong>{test.questions.length - answeredCount}</strong>
+            </div>
+          </div>
+        </aside>
+      </section>
     </div>
   );
 };

@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { resultService } from '../services/api';
 
+const getMedalLabel = (position) => {
+  if (position === 1) return 'Лидер';
+  if (position === 2) return 'Сильный результат';
+  if (position === 3) return 'В топе';
+  return '';
+};
+
 const Leaderboard = () => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,85 +30,75 @@ const Leaderboard = () => {
     }
   };
 
-  const getMedalEmoji = (position) => {
-    switch (position) {
-      case 1:
-        return '🥇';
-      case 2:
-        return '🥈';
-      case 3:
-        return '🥉';
-      default:
-        return '';
-    }
-  };
-
   if (loading) return <div className="center-content"><div className="spinner"></div></div>;
+
+  const topThree = leaderboard.slice(0, 3);
 
   return (
     <div className="container mt-4">
-      <h1 className="mb-4">🏆 Лидерборд</h1>
+      <section className="page-hero leaderboard-hero">
+        <div className="page-hero-copy">
+          <span className="page-kicker">Рейтинг пользователей</span>
+          <h1>Лидерборд по среднему результату</h1>
+          <p>
+            Сравни свои результаты с другими участниками и смотри, кто стабильно держит высокий
+            уровень по всем тестам.
+          </p>
+        </div>
+      </section>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
       {leaderboard.length === 0 ? (
-        <div className="alert alert-info" style={{ textAlign: 'center' }}>
-          Лидерборд пока пуст
+        <div className="empty-state-card">
+          <h2>Лидерборд пока пуст</h2>
+          <p>Как только пользователи начнут проходить тесты, здесь появится рейтинг.</p>
         </div>
       ) : (
-        <div className="card">
-          <div className="responsive-table">
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse'
-            }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #ecf0f1', background: '#f8f9fa' }}>
-                  <th style={{ padding: '1rem', textAlign: 'left' }}>Место</th>
-                  <th style={{ padding: '1rem', textAlign: 'left' }}>Пользователь</th>
-                  <th style={{ padding: '1rem', textAlign: 'center' }}>Тестов пройдено</th>
-                  <th style={{ padding: '1rem', textAlign: 'center' }}>Средний результат</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((user, idx) => (
-                  <tr 
-                    key={user._id} 
-                    style={{ 
-                      borderBottom: '1px solid #ecf0f1',
-                      background: idx < 3 ? '#f0f8ff' : 'white'
-                    }}
-                  >
-                    <td style={{ 
-                      padding: '1rem', 
-                      fontWeight: 'bold', 
-                      fontSize: '1.2rem',
-                      textAlign: 'center',
-                      color: idx < 3 ? '#f39c12' : '#7f8c8d'
-                    }}>
-                      {getMedalEmoji(idx + 1)} {idx + 1}
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <strong>{user.name}</strong><br/>
-                      <span className="text-muted">{user.email}</span>
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'center' }}>
-                      {user.totalTests}
-                    </td>
-                    <td style={{ 
-                      padding: '1rem', 
-                      textAlign: 'center',
-                      fontWeight: 'bold',
-                      color: user.averageScore >= 70 ? '#27ae60' : user.averageScore >= 50 ? '#f39c12' : '#e74c3c'
-                    }}>
+        <>
+          <section className="leaderboard-podium">
+            {topThree.map((user, index) => (
+              <article key={user._id} className={`card podium-card podium-card-${index + 1}`}>
+                <span className="podium-rank">#{index + 1}</span>
+                <h3>{user.name}</h3>
+                <p>{getMedalLabel(index + 1)}</p>
+                <strong>{user.averageScore.toFixed(1)}%</strong>
+                <span>{user.totalTests} тестов завершено</span>
+              </article>
+            ))}
+          </section>
+
+          <section className="card panel-card">
+            <div className="panel-card-header">
+              <div>
+                <h2>Полная таблица</h2>
+                <p className="text-muted">Список участников с баллами и количеством тестов.</p>
+              </div>
+            </div>
+
+            <div className="leaderboard-list">
+              {leaderboard.map((user, idx) => (
+                <article key={user._id} className="leaderboard-row">
+                  <div className="leaderboard-rank-block">#{idx + 1}</div>
+                  <div className="leaderboard-user-block">
+                    <h3>{user.name}</h3>
+                    <p>{user.email}</p>
+                  </div>
+                  <div className="leaderboard-stat-block">
+                    <span>Тестов</span>
+                    <strong>{user.totalTests}</strong>
+                  </div>
+                  <div className="leaderboard-stat-block">
+                    <span>Средний результат</span>
+                    <strong className={user.averageScore >= 70 ? 'score-good' : user.averageScore >= 50 ? 'score-medium' : 'score-low'}>
                       {user.averageScore.toFixed(1)}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    </strong>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </>
       )}
     </div>
   );
