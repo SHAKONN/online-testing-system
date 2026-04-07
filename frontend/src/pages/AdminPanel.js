@@ -128,6 +128,8 @@ const AdminQuestions = () => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
   const [formData, setFormData] = useState({
     text: '',
     category: 'Математика',
@@ -156,21 +158,40 @@ const AdminQuestions = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (formData.text && formData.options.every(o => o.trim())) {
-        await questionService.createQuestion(formData);
-        setShowForm(false);
-        setFormData({
-          text: '',
-          category: 'Математика',
-          difficulty: 'medium',
-          options: ['', '', '', ''],
-          correctAnswerIndex: 0,
-          explanation: '',
-        });
-        loadQuestions();
+      setSubmitError('');
+      setSubmitSuccess('');
+
+      if (!formData.text.trim()) {
+        setSubmitError('Введите текст вопроса');
+        return;
       }
+
+      if (!formData.options.every(o => o.trim())) {
+        setSubmitError('Заполните все 4 варианта ответа');
+        return;
+      }
+
+      await questionService.createQuestion({
+        ...formData,
+        text: formData.text.trim(),
+        options: formData.options.map((option) => option.trim()),
+        explanation: formData.explanation.trim(),
+      });
+
+      setShowForm(false);
+      setSubmitSuccess('Вопрос успешно создан');
+      setFormData({
+        text: '',
+        category: 'Математика',
+        difficulty: 'medium',
+        options: ['', '', '', ''],
+        correctAnswerIndex: 0,
+        explanation: '',
+      });
+      loadQuestions();
     } catch (err) {
       console.error('Ошибка создания вопроса:', err);
+      setSubmitError(err.response?.data?.message || 'Не удалось создать вопрос');
     }
   };
 
@@ -194,6 +215,9 @@ const AdminQuestions = () => {
       {showForm && (
         <div className="card mb-4">
           <div className="card-header">Создать новый вопрос</div>
+          {submitError && (
+            <div className="alert alert-danger mt-2">{submitError}</div>
+          )}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Текст вопроса</label>
@@ -273,6 +297,10 @@ const AdminQuestions = () => {
         </div>
       )}
 
+      {!showForm && submitSuccess && (
+        <div className="alert alert-success mb-3">{submitSuccess}</div>
+      )}
+
       {loading ? (
         <div className="spinner"></div>
       ) : (
@@ -303,6 +331,8 @@ const AdminTests = () => {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -329,16 +359,26 @@ const AdminTests = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubmitError('');
+      setSubmitSuccess('');
+
       if (formData.title && formData.category) {
         await testService.createTest({
           ...formData,
-          questionIds: [], // В реальной системе выбираются вопросы
         });
         setShowForm(false);
+        setSubmitSuccess('Тест успешно создан. В него автоматически добавлены вопросы выбранной категории.');
+        setFormData({
+          title: '',
+          description: '',
+          category: 'Математика',
+          timeLimit: 30,
+        });
         loadTests();
       }
     } catch (err) {
       console.error('Ошибка создания теста:', err);
+      setSubmitError(err.response?.data?.message || 'Не удалось создать тест');
     }
   };
 
@@ -362,6 +402,12 @@ const AdminTests = () => {
       {showForm && (
         <div className="card mb-4">
           <div className="card-header">Создать новый тест</div>
+          {submitError && (
+            <div className="alert alert-danger mt-2">{submitError}</div>
+          )}
+          <div className="alert alert-info mt-2">
+            При создании теста будут автоматически добавлены все вопросы выбранной категории.
+          </div>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Название теста</label>
@@ -412,6 +458,10 @@ const AdminTests = () => {
             <button type="submit" className="btn-success">Создать тест</button>
           </form>
         </div>
+      )}
+
+      {!showForm && submitSuccess && (
+        <div className="alert alert-success mb-3">{submitSuccess}</div>
       )}
 
       {loading ? (

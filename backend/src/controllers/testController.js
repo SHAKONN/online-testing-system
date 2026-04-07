@@ -40,8 +40,21 @@ exports.getTestWithQuestions = async (req, res) => {
       return res.status(404).json({ message: 'Тест не найден' });
     }
 
+    let testQuestions = Array.isArray(test.questions) ? test.questions : [];
+
+    // Поддержка старых тестов, которые были созданы без привязанных вопросов
+    if (testQuestions.length === 0) {
+      testQuestions = await Question.find({ category: test.category });
+    }
+
+    if (testQuestions.length === 0) {
+      return res.status(400).json({
+        message: 'В этом тесте пока нет вопросов',
+      });
+    }
+
     // Перемешиваем вопросы
-    const shuffledQuestions = shuffleArray(test.questions);
+    const shuffledQuestions = shuffleArray(testQuestions);
 
     // Отправляем вопросы без правильных ответов (для безопасности)
     const questionsForResponse = shuffledQuestions.map(q => ({
@@ -58,7 +71,7 @@ exports.getTestWithQuestions = async (req, res) => {
       description: test.description,
       category: test.category,
       timeLimit: test.timeLimit,
-      totalQuestions: test.questionCount,
+      totalQuestions: questionsForResponse.length,
       questions: questionsForResponse,
     });
   } catch (error) {
@@ -76,13 +89,26 @@ exports.createTest = async (req, res) => {
       return res.status(400).json({ message: 'Заполните обязательные поля' });
     }
 
+    let resolvedQuestionIds = Array.isArray(questionIds) ? questionIds.filter(Boolean) : [];
+
+    if (resolvedQuestionIds.length === 0) {
+      const categoryQuestions = await Question.find({ category }).select('_id');
+      resolvedQuestionIds = categoryQuestions.map((question) => question._id);
+    }
+
+    if (resolvedQuestionIds.length === 0) {
+      return res.status(400).json({
+        message: 'Для этой категории пока нет вопросов. Сначала добавьте вопросы, затем создайте тест.',
+      });
+    }
+
     const test = new Test({
       title,
       description,
       category,
       timeLimit: timeLimit || 30,
-      questionCount: questionIds.length,
-      questions: questionIds,
+      questionCount: resolvedQuestionIds.length,
+      questions: resolvedQuestionIds,
       createdBy: req.user.id,
     });
 

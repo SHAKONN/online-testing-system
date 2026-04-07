@@ -102,6 +102,15 @@ const TestTaking = () => {
   if (loading) return <div className="center-content"><div className="spinner"></div></div>;
   if (error) return <div className="container mt-4"><div className="alert alert-danger">{error}</div></div>;
   if (!test) return <div className="container mt-4"><div className="alert alert-info">Тест не найден</div></div>;
+  if (!Array.isArray(test.questions) || test.questions.length === 0) {
+    return (
+      <div className="container mt-4">
+        <div className="alert alert-warning">
+          В этом тесте пока нет вопросов. Вернитесь позже или попросите администратора заполнить тест.
+        </div>
+      </div>
+    );
+  }
 
   if (!testStarted) {
     return (

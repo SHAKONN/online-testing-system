@@ -41,25 +41,48 @@ exports.createQuestion = async (req, res) => {
       explanation,
     } = req.body;
 
-    if (!text || !category || !options || options.length !== 4) {
+    const normalizedText = typeof text === 'string' ? text.trim() : '';
+    const normalizedCategory = typeof category === 'string' ? category.trim() : '';
+    const normalizedOptions = Array.isArray(options)
+      ? options.map((opt) => (typeof opt === 'string' ? opt.trim() : ''))
+      : [];
+    const normalizedCorrectAnswerIndex = Number(correctAnswerIndex);
+
+    if (!normalizedText || !normalizedCategory || normalizedOptions.length !== 4) {
       return res.status(400).json({
         message: 'Все поля обязательны. Должно быть ровно 4 варианта ответа',
       });
     }
 
+    if (normalizedOptions.some((opt) => !opt)) {
+      return res.status(400).json({
+        message: 'Заполните все 4 варианта ответа',
+      });
+    }
+
+    if (
+      !Number.isInteger(normalizedCorrectAnswerIndex) ||
+      normalizedCorrectAnswerIndex < 0 ||
+      normalizedCorrectAnswerIndex >= normalizedOptions.length
+    ) {
+      return res.status(400).json({
+        message: 'Выберите корректный правильный ответ',
+      });
+    }
+
     // Убедимся, что правильный ответ отмечен
-    const optionsWithCorrect = options.map((opt, idx) => ({
+    const optionsWithCorrect = normalizedOptions.map((opt, idx) => ({
       text: opt,
-      isCorrect: idx === correctAnswerIndex,
+      isCorrect: idx === normalizedCorrectAnswerIndex,
     }));
 
     const question = new Question({
-      text,
-      category,
+      text: normalizedText,
+      category: normalizedCategory,
       difficulty: difficulty || 'medium',
       options: optionsWithCorrect,
-      correctAnswerIndex,
-      explanation: explanation || '',
+      correctAnswerIndex: normalizedCorrectAnswerIndex,
+      explanation: typeof explanation === 'string' ? explanation.trim() : '',
       createdBy: req.user.id,
     });
 
@@ -67,6 +90,12 @@ exports.createQuestion = async (req, res) => {
     res.status(201).json({ message: 'Вопрос создан', question });
   } catch (error) {
     console.error('Ошибка создания вопроса:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: Object.values(error.errors)[0]?.message || 'Некорректные данные вопроса',
+      });
+    }
+
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
