@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { testService, questionService, resultService } from '../services/api';
 
 const AdminPanel = () => {
@@ -342,6 +342,7 @@ const AdminTests = () => {
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [generationCount, setGenerationCount] = useState(5);
+  const formCardRef = useRef(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -512,6 +513,13 @@ const AdminTests = () => {
               },
             ],
       });
+
+      setTimeout(() => {
+        formCardRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 0);
     } catch (err) {
       console.error('Ошибка загрузки теста для редактирования:', err);
       setSubmitError(err.response?.data?.message || 'Не удалось загрузить тест для редактирования');
@@ -644,7 +652,7 @@ const AdminTests = () => {
       </button>
 
       {showForm && (
-        <div className="card mb-4">
+        <div ref={formCardRef} className="card mb-4">
           <div className="card-header">
             {editingTestId ? 'Редактировать тест' : 'Создать новый тест'}
           </div>
