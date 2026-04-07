@@ -590,6 +590,7 @@ const AdminTests = () => {
           category: formData.category,
           timeLimit: formData.timeLimit,
           questions: formData.questions.map((question) => ({
+            ...(question._id ? { _id: question._id } : {}),
             text: question.text.trim(),
             difficulty: question.difficulty,
             options: question.options.map((option) => option.trim()),
