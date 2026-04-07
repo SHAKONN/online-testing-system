@@ -40,6 +40,7 @@ nav .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 
 .nav-logo {
@@ -49,11 +50,21 @@ nav .container {
   text-decoration: none;
 }
 
+.nav-toggle {
+  display: none;
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.45rem 0.7rem;
+  line-height: 1;
+}
+
 .nav-links {
   display: flex;
   gap: 2rem;
   list-style: none;
   align-items: center;
+  margin-left: auto;
 }
 
 .nav-links a {
@@ -78,6 +89,10 @@ nav .container {
 
 .nav-links button:hover {
   background-color: #c0392b;
+}
+
+.nav-user {
+  white-space: nowrap;
 }
 
 /* ===== КНОПКИ ===== */
@@ -169,6 +184,21 @@ textarea {
   min-height: 100px;
 }
 
+.answer-option-row {
+  align-items: center;
+}
+
+.answer-option-radio {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.answer-option-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /* ===== CARDS ===== */
 
 .card {
@@ -255,6 +285,61 @@ textarea {
   text-align: center;
 }
 
+.category-filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.test-card-meta {
+  word-break: break-word;
+}
+
+.test-card-action {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+}
+
+.responsive-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.responsive-table table {
+  min-width: 640px;
+}
+
+.test-taking-header {
+  gap: 1rem;
+}
+
+.test-taking-header-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.test-taking-timer {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.test-option-card {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.test-option-radio {
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+}
+
+.test-taking-actions > * {
+  flex: 1 1 0;
+}
+
 /* ===== СПИНЕР ЗАГРУЗКИ ===== */
 
 .spinner {
@@ -275,8 +360,51 @@ textarea {
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 768px) {
+  nav {
+    position: sticky;
+  }
+
   .nav-links {
-    gap: 1rem;
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 15px;
+    right: 15px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    background: #2c3e50;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+    z-index: 120;
+    margin-left: 0;
+  }
+
+  .nav-links-open {
+    display: flex;
+  }
+
+  .nav-links li {
+    width: 100%;
+  }
+
+  .nav-links a,
+  .nav-links button {
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+
+  .nav-user {
+    text-align: center;
+    white-space: normal;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .grid-2, .grid-3 {
@@ -287,9 +415,68 @@ textarea {
     padding: 0 15px;
   }
 
+  .nav-logo {
+    font-size: 1.05rem;
+    max-width: calc(100% - 70px);
+    line-height: 1.15;
+  }
+
   button {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
+  }
+
+  .answer-option-row {
+    gap: 0.75rem;
+  }
+
+  .category-filter-list {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .category-filter-list button {
+    width: 100%;
+  }
+
+  .test-taking-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .test-taking-timer {
+    font-size: 1.2rem !important;
+  }
+
+  .test-taking-actions {
+    flex-direction: column;
+  }
+
+  .test-taking-actions > * {
+    width: 100%;
+  }
+
+  .test-question-indicator button {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .result-answer-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .result-actions {
+    flex-direction: column;
+  }
+
+  .result-actions a {
+    width: 100%;
+    text-align: center;
+  }
+
+  .responsive-table table {
+    min-width: 560px;
   }
 }
 

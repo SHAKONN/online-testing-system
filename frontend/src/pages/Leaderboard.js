@@ -50,7 +50,7 @@ const Leaderboard = () => {
         </div>
       ) : (
         <div className="card">
-          <div style={{ overflowX: 'auto' }}>
+          <div className="responsive-table">
             <table style={{
               width: '100%',
               borderCollapse: 'collapse'

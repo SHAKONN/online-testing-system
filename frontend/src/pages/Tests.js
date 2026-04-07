@@ -51,7 +51,7 @@ const Tests = () => {
       {/* Фильтр по категориям */}
       <div className="card mb-4">
         <h3>Фильтр по категориям:</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div className="category-filter-list">
           <button
             className={selectedCategory === '' ? 'btn-primary' : 'btn-secondary'}
             onClick={() => setSelectedCategory('')}
@@ -78,7 +78,7 @@ const Tests = () => {
             <div key={test._id} className="card">
               <div className="card-header">{test.title}</div>
               <p>{test.description}</p>
-              <div className="mb-2">
+              <div className="mb-2 test-card-meta">
                 <strong>Категория:</strong> {test.category}<br/>
                 <strong>Вопросов:</strong> {test.questionCount}<br/>
                 <strong>Время:</strong> {test.timeLimit} минут<br/>
@@ -87,7 +87,7 @@ const Tests = () => {
                   <><strong>Средний балл:</strong> {Math.round(test.averageScore)}%</>
                 )}
               </div>
-              <Link to={`/test/${test._id}`} className="btn-primary">
+              <Link to={`/test/${test._id}`} className="btn-primary test-card-action">
                 Начать тест
               </Link>
             </div>

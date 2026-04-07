@@ -69,7 +69,7 @@ const Results = () => {
 
           <div className="card">
             <div className="card-header">История тестирований</div>
-            <div style={{ overflowX: 'auto' }}>
+            <div className="responsive-table">
               <table style={{
                 width: '100%',
                 borderCollapse: 'collapse',

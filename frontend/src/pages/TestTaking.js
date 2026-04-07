@@ -159,18 +159,20 @@ const TestTaking = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
-      }}>
-        <div>
+      }}
+      className="test-taking-header"
+      >
+        <div className="test-taking-header-main">
           <h3 style={{ margin: 0, color: 'white' }}>{test.title}</h3>
           <p style={{ margin: '0.5rem 0 0', color: '#ecf0f1' }}>
             Вопрос {currentQuestionIndex + 1} из {test.questions.length}
           </p>
         </div>
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }} className="test-taking-timer">
           ⏱ {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </div>
       </div>
-
+ 
       {/* Progress bar */}
       <div style={{ marginBottom: '2rem' }}>
         <div style={{
@@ -197,7 +199,7 @@ const TestTaking = () => {
         
         <div style={{ marginTop: '1.5rem' }}>
           {currentQuestion.options.map((option, index) => (
-            <label key={index} style={{
+            <label key={index} className="test-option-card" style={{
               display: 'block',
               margin: '1rem 0',
               padding: '1rem',
@@ -213,9 +215,10 @@ const TestTaking = () => {
                 value={index}
                 checked={answers[currentQuestionIndex] === index}
                 onChange={() => handleAnswerSelect(index)}
+                className="test-option-radio"
                 style={{ marginRight: '0.5rem' }}
               />
-              {option.text}
+              <span>{option.text}</span>
             </label>
           ))}
         </div>
@@ -227,7 +230,9 @@ const TestTaking = () => {
         gap: '1rem', 
         justifyContent: 'space-between',
         marginBottom: '2rem'
-      }}>
+      }}
+      className="test-taking-actions"
+      >
         <button 
           onClick={handlePrev} 
           className="btn-secondary"
@@ -262,7 +267,9 @@ const TestTaking = () => {
         padding: '1rem',
         background: '#ecf0f1',
         borderRadius: '4px'
-      }}>
+      }}
+      className="test-question-indicator"
+      >
         {test.questions.map((_, idx) => (
           <button
             key={idx}

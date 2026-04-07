@@ -261,12 +261,17 @@ const AdminQuestions = () => {
             <div className="form-group">
               <label>Варианты ответа</label>
               {formData.options.map((opt, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div
+                  key={idx}
+                  className="answer-option-row"
+                  style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
+                >
                   <input
                     type="radio"
                     name="correct"
                     checked={formData.correctAnswerIndex === idx}
                     onChange={() => setFormData({...formData, correctAnswerIndex: idx})}
+                    className="answer-option-radio"
                     style={{ marginTop: '0.75rem' }}
                   />
                   <input
@@ -278,6 +283,7 @@ const AdminQuestions = () => {
                       setFormData({...formData, options: newOpts});
                     }}
                     placeholder={`Вариант ${idx + 1}`}
+                    className="answer-option-input"
                     style={{ flex: 1 }}
                   />
                 </div>

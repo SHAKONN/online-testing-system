@@ -84,7 +84,7 @@ const Result = () => {
               borderLeft: `4px solid ${isCorrect ? '#27ae60' : '#e74c3c'}`
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+            <div className="result-answer-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                   Вопрос {idx + 1}: {answer.questionText}
@@ -117,7 +117,7 @@ const Result = () => {
       })}
 
       {/* Action buttons */}
-      <div style={{ 
+      <div className="result-actions" style={{ 
         display: 'flex', 
         gap: '1rem', 
         marginTop: '2rem',
