@@ -1,5 +1,6 @@
 const { Test, Question } = require('../models');
 const { shuffleArray } = require('../utils/helpers');
+const { generateQuestionsWithOpenAI } = require('../services/openaiQuestionGenerator');
 
 // Получить все активные тесты
 exports.getAllTests = async (req, res) => {
@@ -96,6 +97,37 @@ exports.getTestById = async (req, res) => {
   } catch (error) {
     console.error('Ошибка получения теста:', error);
     res.status(500).json({ message: 'Ошибка сервера' });
+  }
+};
+
+// Сгенерировать вопросы для теста через OpenAI (admin)
+exports.generateQuestions = async (req, res) => {
+  try {
+    const { category, count } = req.body;
+    const numericCount = Number(count);
+
+    if (!category) {
+      return res.status(400).json({ message: 'Выберите предмет для генерации' });
+    }
+
+    if (!Number.isInteger(numericCount) || numericCount < 1 || numericCount > 20) {
+      return res.status(400).json({ message: 'Количество вопросов должно быть от 1 до 20' });
+    }
+
+    const questions = await generateQuestionsWithOpenAI({
+      category,
+      count: numericCount,
+    });
+
+    res.json({
+      message: 'Вопросы сгенерированы',
+      questions,
+    });
+  } catch (error) {
+    console.error('Ошибка AI-генерации вопросов:', error);
+    res.status(500).json({
+      message: error.message || 'Не удалось сгенерировать вопросы',
+    });
   }
 };
 

@@ -226,6 +226,23 @@ textarea {
   margin-bottom: 0.75rem;
 }
 
+.question-builder-top-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ai-generate-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ai-generate-controls input {
+  width: 88px;
+}
+
 .test-builder-stack {
   display: grid;
   gap: 1rem;
@@ -357,6 +374,20 @@ textarea {
 
 .admin-test-edit {
   width: 100%;
+}
+
+.admin-panel-title {
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-tabs button {
+  flex: 1 1 0;
 }
 
 /* ===== CARDS ===== */
@@ -599,6 +630,30 @@ textarea {
   .test-builder-question-head {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .question-builder-top-actions,
+  .ai-generate-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ai-generate-controls input {
+    width: 100%;
+  }
+
+  .admin-panel-title {
+    font-size: 1.35rem;
+    margin-bottom: 1rem;
+  }
+
+  .admin-tabs {
+    flex-direction: column;
+  }
+
+  .admin-tabs button {
+    width: 100%;
   }
 
   .test-builder-question-buttons {

@@ -26,11 +26,11 @@ const AdminPanel = () => {
 
   return (
     <div className="container mt-4">
-      <h1 className="mb-4">⚙️ Администраторская панель</h1>
+      <h1 className="mb-4 admin-panel-title">⚙️ Администраторская панель</h1>
 
       {/* Navigation tabs */}
       <div className="card mb-4">
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="admin-tabs" style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             className={tab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}
             onClick={() => setTab('dashboard')}
@@ -338,8 +338,10 @@ const AdminTests = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingTestId, setEditingTestId] = useState(null);
+  const [generatingQuestions, setGeneratingQuestions] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
+  const [generationCount, setGenerationCount] = useState(5);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -516,6 +518,38 @@ const AdminTests = () => {
     }
   };
 
+  const handleGenerateQuestions = async () => {
+    try {
+      setSubmitError('');
+      setSubmitSuccess('');
+      setGeneratingQuestions(true);
+
+      const response = await testService.generateQuestions({
+        category: formData.category,
+        count: generationCount,
+      });
+
+      const generatedQuestions = response.data.questions.map((question) => ({
+        text: question.text || '',
+        difficulty: question.difficulty || 'medium',
+        options: Array.isArray(question.options) ? question.options : ['', '', '', ''],
+        correctAnswerIndex: Number.isInteger(question.correctAnswerIndex) ? question.correctAnswerIndex : 0,
+        explanation: question.explanation || '',
+      }));
+
+      setFormData((prev) => ({
+        ...prev,
+        questions: generatedQuestions,
+      }));
+      setSubmitSuccess('Вопросы сгенерированы. Проверьте их и при необходимости отредактируйте перед сохранением.');
+    } catch (err) {
+      console.error('Ошибка генерации вопросов:', err);
+      setSubmitError(err.response?.data?.message || 'Не удалось сгенерировать вопросы');
+    } finally {
+      setGeneratingQuestions(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -669,13 +703,32 @@ const AdminTests = () => {
             <div className="form-group">
               <div className="question-builder-header">
                 <label style={{ marginBottom: 0 }}>Вопросы для теста</label>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={addQuestionBlock}
-                >
-                  + Добавить вопрос
-                </button>
+                <div className="question-builder-top-actions">
+                  <div className="ai-generate-controls">
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={generationCount}
+                      onChange={(e) => setGenerationCount(Number(e.target.value) || 1)}
+                    />
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleGenerateQuestions}
+                      disabled={generatingQuestions}
+                    >
+                      {generatingQuestions ? 'Генерация...' : 'Сгенерировать с ИИ'}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={addQuestionBlock}
+                  >
+                    + Добавить вопрос
+                  </button>
+                </div>
               </div>
               <div className="question-picker-toolbar mb-2">
                 <div className="question-picker-count">

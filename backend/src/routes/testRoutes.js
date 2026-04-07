@@ -9,6 +9,7 @@ router.get('/category/:category', testController.getTestsByCategory);
 router.get('/:testId/questions', testController.getTestWithQuestions);
 
 // Защищенные маршруты (admin)
+router.post('/generate-questions', auth, adminAuth, testController.generateQuestions);
 router.get('/:testId', auth, adminAuth, testController.getTestById);
 router.post('/', auth, adminAuth, testController.createTest);
 router.put('/:testId', auth, adminAuth, testController.updateTest);
