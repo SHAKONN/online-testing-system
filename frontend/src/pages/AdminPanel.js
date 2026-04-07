@@ -624,13 +624,13 @@ const AdminTests = () => {
   };
 
   const handleDeleteTest = async (testId) => {
-    if (window.confirm('Вы уверены?')) {
-      try {
-        await testService.deleteTest(testId);
-        loadTests();
-      } catch (err) {
-        console.error('Ошибка удаления:', err);
-      }
+    try {
+      setTests((prev) => prev.filter((test) => test._id !== testId));
+      await testService.deleteTest(testId);
+    } catch (err) {
+      console.error('Ошибка удаления:', err);
+      setSubmitError(err.response?.data?.message || 'Не удалось удалить тест');
+      loadTests();
     }
   };
 
