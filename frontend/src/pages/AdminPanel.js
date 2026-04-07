@@ -127,17 +127,6 @@ const AdminPanel = () => {
 const AdminQuestions = () => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [submitSuccess, setSubmitSuccess] = useState('');
-  const [formData, setFormData] = useState({
-    text: '',
-    category: 'Математика',
-    difficulty: 'medium',
-    options: ['', '', '', ''],
-    correctAnswerIndex: 0,
-    explanation: '',
-  });
 
   useEffect(() => {
     loadQuestions();
@@ -155,46 +144,6 @@ const AdminQuestions = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setSubmitError('');
-      setSubmitSuccess('');
-
-      if (!formData.text.trim()) {
-        setSubmitError('Введите текст вопроса');
-        return;
-      }
-
-      if (!formData.options.every(o => o.trim())) {
-        setSubmitError('Заполните все 4 варианта ответа');
-        return;
-      }
-
-      await questionService.createQuestion({
-        ...formData,
-        text: formData.text.trim(),
-        options: formData.options.map((option) => option.trim()),
-        explanation: formData.explanation.trim(),
-      });
-
-      setShowForm(false);
-      setSubmitSuccess('Вопрос успешно создан');
-      setFormData({
-        text: '',
-        category: 'Математика',
-        difficulty: 'medium',
-        options: ['', '', '', ''],
-        correctAnswerIndex: 0,
-        explanation: '',
-      });
-      loadQuestions();
-    } catch (err) {
-      console.error('Ошибка создания вопроса:', err);
-      setSubmitError(err.response?.data?.message || 'Не удалось создать вопрос');
-    }
-  };
-
   const handleDeleteQuestion = async (questionId) => {
     if (window.confirm('Вы уверены?')) {
       try {
@@ -208,105 +157,6 @@ const AdminQuestions = () => {
 
   return (
     <div>
-      <button onClick={() => setShowForm(!showForm)} className="btn-success mb-3">
-        {showForm ? '✕ Отмена' : '+ Добавить вопрос'}
-      </button>
-
-      {showForm && (
-        <div className="card mb-4">
-          <div className="card-header">Создать новый вопрос</div>
-          {submitError && (
-            <div className="alert alert-danger mt-2">{submitError}</div>
-          )}
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Текст вопроса</label>
-              <textarea
-                value={formData.text}
-                onChange={(e) => setFormData({...formData, text: e.target.value})}
-                required
-              />
-            </div>
-
-            <div className="grid grid-2">
-              <div className="form-group">
-                <label>Категория</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                >
-                  <option>Математика</option>
-                  <option>Русский язык</option>
-                  <option>Физика</option>
-                  <option>Химия</option>
-                  <option>Биология</option>
-                  <option>История</option>
-                  <option>География</option>
-                  <option>Английский язык</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Сложность</label>
-                <select
-                  value={formData.difficulty}
-                  onChange={(e) => setFormData({...formData, difficulty: e.target.value})}
-                >
-                  <option value="easy">Легкий</option>
-                  <option value="medium">Средний</option>
-                  <option value="hard">Сложный</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Варианты ответа</label>
-              {formData.options.map((opt, idx) => (
-                <div
-                  key={idx}
-                  className="answer-option-row"
-                  style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
-                >
-                  <input
-                    type="radio"
-                    name="correct"
-                    checked={formData.correctAnswerIndex === idx}
-                    onChange={() => setFormData({...formData, correctAnswerIndex: idx})}
-                    className="answer-option-radio"
-                    style={{ marginTop: '0.75rem' }}
-                  />
-                  <input
-                    type="text"
-                    value={opt}
-                    onChange={(e) => {
-                      const newOpts = [...formData.options];
-                      newOpts[idx] = e.target.value;
-                      setFormData({...formData, options: newOpts});
-                    }}
-                    placeholder={`Вариант ${idx + 1}`}
-                    className="answer-option-input"
-                    style={{ flex: 1 }}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="form-group">
-              <label>Объяснение (опционально)</label>
-              <textarea
-                value={formData.explanation}
-                onChange={(e) => setFormData({...formData, explanation: e.target.value})}
-              />
-            </div>
-
-            <button type="submit" className="btn-success">Создать вопрос</button>
-          </form>
-        </div>
-      )}
-
-      {!showForm && submitSuccess && (
-        <div className="alert alert-success mb-3">{submitSuccess}</div>
-      )}
-
       {loading ? (
         <div className="spinner"></div>
       ) : (
