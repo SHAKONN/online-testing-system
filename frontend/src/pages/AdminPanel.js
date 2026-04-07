@@ -498,7 +498,7 @@ const AdminTests = () => {
         }}
         className="btn-success mb-3"
       >
-        {showForm ? '✕ Отмена' : '+ Добавить тест'}
+        {showForm ? '✕ Отмена' : '+ Создать тест'}
       </button>
 
       {showForm && (
